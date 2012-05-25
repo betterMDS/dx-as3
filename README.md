@@ -18,4 +18,4 @@ The dx-as3 is freely available under the same dual BSD/AFLv2 license as the Dojo
 Description
 -----------
 
-Under development.
+Under development. More details to follow.
