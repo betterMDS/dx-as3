@@ -25,6 +25,7 @@ package dx{
 
 		private var playlist:VideoPlaylist;
 		private var fullscreen:Fullscreen;
+		private var fullscreenShowing:Boolean = true;
 		public var standalone:Boolean = false; // are we wrapped in dx JavaScript?
 
 		public var config:Object = {
@@ -35,7 +36,8 @@ package dx{
 			volume:.5,
 			path:"",
 			standalone:false,
-			loadEvent:""
+			loadEvent:"",
+			videoRef:'video'
 		}
 
 		public function Video():void{
@@ -87,55 +89,56 @@ package dx{
 				}
 			}
 
+			if(!ei.available) console.warn('No EI available.')
+
 			build();
-
-
 
 			new Controls(this);
 
 			ei.add("getLoadTest", function():Boolean{
 				return true;
 			});
+
+			// is this being used??
 			ei.add("startup", function():Boolean{
-				console.info('swf.ei.startup called!');
+				console.log('swf.ei.startup called!');
 				playlist.add(config.path);
 				return true;
 			});
 
 
 			if(config.loadEvent){
-				ei.call(""+config.loadEvent, true);
+				console.log('call custom load event:', config.loadEvent);
+				ei.call(""+config.loadEvent, config.videoRef);
 			}else{
-				ei.call("dxMediaFlashVideo.onPlayerLoaded", true);
+				console.log('call dxMediaFlashVideo.onPlayerLoaded');
+				ei.call("dxMediaFlashVideo.onPlayerLoaded", config.videoRef);
 			}
 
 
 			if(!standalone && !obj.noFullscreen){
-				util.setTimeout(function():void{
-					buildFS();
-				}, 500);
+				buildFS();
 			}
 		}
 
 		private function buildFS():void{
 			fullscreen = new Fullscreen(this);
+			if(!fullscreenShowing) fullscreen.show = false;
 
-			ei.add("hideFullscreen", function(...a):void{
-				//console.log('hideFullscreen');
-				fullscreen.show = false;
-			});
-			ei.add("showFullscreen", function(...a):void{
-				//console.log('showFullscreen');
-				fullscreen.show = true;
-			});
+			console.log('Fullscreen Added');
 		}
 
 		private function build():void{
 			var r:Rect = new Rect(theme.playerBack, this);
 			playlist = new VideoPlaylist(this, config.autoplay, config.volume);
 			!standalone && subscribes();
+			console.log('load video:', config.path)
 			if(config.path){// && !config.loadEvent){
 				playlist.add(config.path);
+			}else{
+				for(var nm:String in config){
+					console.log('   ', nm, config[nm]);
+				}
 			}
 
 			if(!standalone){
@@ -145,10 +148,10 @@ package dx{
 		}
 
 		private function standaloneSubscribe():void{
+			// unsure of this method name...
+
 			console.log("standaloneSubscribe");
-			//
-			// unsure of this method name
-			//
+
 			util.sub("video_play", playlist.play);
 			util.sub("video_pause", playlist.pause);
 			util.sub("video_seek", playlist.seek);
@@ -157,17 +160,17 @@ package dx{
 		private function subscribes():void{
 			console.log("subscribes")
 			util.sub("video_path_meta", function(meta:Object):void{
-				ei.call("dxMediaFlashVideo.onMeta", meta);
+				ei.call("dxMediaFlashVideo.onMeta", meta, config.videoRef);
 			});
 			util.sub("video_status", function(obj:Object):void{
-				ei.call("dxMediaFlashVideo.onStatus", obj);
+				ei.call("dxMediaFlashVideo.onStatus", obj, config.videoRef);
 			});
 			util.sub("stage_resize", function(obj:Object):void{
-				ei.call("dxMediaFlashVideo.onStatus", obj);
+				ei.call("dxMediaFlashVideo.onStatus", obj, config.videoRef);
 			});
 			util.pub("stage_click", function(obj:Object):void{
 				console.log('swf.click');
-				ei.call("dxMediaFlashVideo.onClick");
+				ei.call("dxMediaFlashVideo.onClick", config.videoRef);
 			});
 		}
 
@@ -177,9 +180,18 @@ package dx{
 			ei.add("seek", playlist.seek);
 			ei.add("setVideo", playlist.setVideo);
 			ei.add("add", playlist.add);
+			ei.add("isVideoPlaying", playlist.isPlaying);
 
-
-
+			ei.add("hideFullscreen", function(...a):void{
+				//console.log('hideFullscreen');
+				fullscreenShowing = false;
+				if(fullscreen) fullscreen.show = false;
+			});
+			ei.add("showFullscreen", function(...a):void{
+				//console.log('showFullscreen');
+				fullscreenShowing = true;
+				if(fullscreen) fullscreen.show = true;
+			});
 
 			console.log("***publishes***");
 			ei.add("getTime", function():Number{
@@ -189,8 +201,6 @@ package dx{
 			ei.add("setVolume", function(v:Number):void{
 				playlist.setVolume(v);
 			});
-
-			//ei.call("dx.flash.onPlayerLoaded");
 		}
 	}
 }

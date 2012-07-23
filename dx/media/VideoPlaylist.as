@@ -22,6 +22,10 @@ package dx.media{
 			container = _container;
 		}
 
+		public function isPlaying():Boolean{
+			return current.playing;
+		}
+		
 		public function play(...a):void{
 			current.play();
 		}

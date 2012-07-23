@@ -14,8 +14,11 @@ package dx.common{
 		}
 
 		public static function call(...a):*{
-			if(!available) return null;
-			trace("ei.call:", a[0]);
+			if(!available){
+				//console.log('EI EI NO.');
+				return null;
+			}
+			//console.log("................ei.call:", a[0]);
 			try{
 				return 	ExternalInterface.call.apply(null, a);
 			}catch(e:Error){
